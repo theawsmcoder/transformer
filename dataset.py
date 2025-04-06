@@ -13,9 +13,9 @@ class BilingualDataset(Dataset):
         self.tgt_lang = tgt_lang
         self.seq_length = seq_length
 
-        self.sos_token = torch.Tensor([tokenizer_src.token_to_id(['[SOS]'])], dtype = torch.int64)
-        self.eos_token = torch.Tensor([tokenizer_src.token_to_id(['[EOS]'])], dtype = torch.int64)
-        self.pad_token = torch.Tensor([tokenizer_src.token_to_id(['[PAD]'])], dtype = torch.int64)
+        self.sos_token = torch.tensor([tokenizer_src.token_to_id('[SOS]')], dtype = torch.int64)
+        self.eos_token = torch.tensor([tokenizer_src.token_to_id('[EOS]')], dtype = torch.int64)
+        self.pad_token = torch.tensor([tokenizer_src.token_to_id('[PAD]')], dtype = torch.int64)
 
     def __len__(self):
         return len(self.dataset)
@@ -25,8 +25,8 @@ class BilingualDataset(Dataset):
         src_text = src_tgt['translation'][self.src_lang]
         tgt_text = src_tgt['translation'][self.tgt_lang]
 
-        src_tokens = self.tokenizer_src(src_text).ids
-        tgt_tokens = self.tokenizer_tgt(tgt_text).ids
+        src_tokens = self.tokenizer_src.encode(src_text).ids
+        tgt_tokens = self.tokenizer_tgt.encode(tgt_text).ids
 
         src_padding_tokens_len = self.seq_length - len(src_tokens) - 2 # SOS and EOS
         tgt_padding_tokens_len = self.seq_length - len(tgt_tokens) - 1 # only SOS

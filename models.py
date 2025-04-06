@@ -6,7 +6,7 @@ from torch import nn
 
 class WordEmbedding(nn.Module):
     def __init__(self, d_model: int, vocab_size: int):
-        super(WordEmbedding).__init__()
+        super(WordEmbedding, self).__init__()
         self.d_model = d_model
         self.embedding = nn.Embedding(vocab_size, self.d_model) # (number of embeddings, embedding size)
 
@@ -18,7 +18,7 @@ class WordEmbedding(nn.Module):
 
 class PositionalEncoding(nn.Module):
     def __init__(self, seq: int, d_model: int, dropout: float = 0.1):
-        super(PositionalEncoding).__init__()
+        super(PositionalEncoding, self).__init__()
         self.dropout = nn.Dropout(dropout)
 
         pe = torch.zeros(seq, d_model) # (seq, d_model)
@@ -30,7 +30,7 @@ class PositionalEncoding(nn.Module):
         pe = pe.unsqueeze(0) # (1, seq, d_model)
 
         # when you want to store a tensor but not as a model parameter, use buffer
-        torch.register_buffer('pe', pe)
+        self.register_buffer('pe', pe)
 
     def forward(self, x):
         # add the positional encodings. limit the seq as it could be different based on the number of words (1, seq, d_model)
@@ -40,7 +40,7 @@ class PositionalEncoding(nn.Module):
 
 class FeedForward(nn.Module):
     def __init__(self, d_model: int, d_ff: int, dropout: float = 0.1):
-        super(FeedForward).__init__()
+        super(FeedForward, self).__init__()
         self.fc1 = nn.Linear(d_model, d_ff)
         self.fc2 = nn.Linear(d_ff, d_model)
         self.dropout = nn.Dropout(dropout)
@@ -114,6 +114,7 @@ class MultiHeadAttention(nn.Module):
 # not using this layer but this was an interestsing implementation too
 class ResidualConnection(nn.Module):
     def __init__(self, d_model: int, dropout: float = 0.1):
+        super(ResidualConnection, self).__init__()
         self.dropout = nn.Dropout(dropout)
         self.norm = nn.LayerNorm(d_model) # when the 'normalized_shape' parameter is of type 'int', it requires the input to have its last dimension to be of that size
 
@@ -124,7 +125,7 @@ class ResidualConnection(nn.Module):
 
 class EncoderBlock(nn.Module):
     def __init__(self, d_model: int, self_attention_block: MultiHeadAttention, feedforward_block: FeedForward, dropout: float = 0.1):
-        super(EncoderBlock).__init__()
+        super(EncoderBlock, self).__init__()
         self.self_attention_block = self_attention_block
         self.feedforward_block = feedforward_block
 
@@ -152,7 +153,7 @@ class EncoderBlock(nn.Module):
 
 class DecoderBlock(nn.Module):
     def __init__(self, d_model: int, self_attention_block: MultiHeadAttention, cross_attention_block: MultiHeadAttention, feedforward_block: FeedForward, dropout: float = 0.1):
-        super(DecoderBlock).__init__()
+        super(DecoderBlock, self).__init__()
         self.self_attention_block = self_attention_block
         self.cross_attention_block = cross_attention_block
         self.feedforward_block = feedforward_block
@@ -187,7 +188,7 @@ class DecoderBlock(nn.Module):
 
 class Encoder(nn.Module):
     def __init__(self, d_model: int, n: int, self_attention_block: MultiHeadAttention, feedforward_block: FeedForward, dropout: float = 0.1):
-        super(Encoder).__init__()
+        super(Encoder, self).__init__()
         self.encoder_blocks = nn.ModuleList([EncoderBlock(d_model, self_attention_block, feedforward_block, dropout) for _ in range(n)])
         self.norm = nn.LayerNorm(d_model)
 
@@ -199,7 +200,7 @@ class Encoder(nn.Module):
 
 class Decoder(nn.Module):
     def __init__(self, d_model: int, n: int, self_attention_block: MultiHeadAttention, cross_attention_block: MultiHeadAttention, feedforward_block: FeedForward, dropout: float = 0.1):
-        super(Decoder).__init__()
+        super(Decoder, self).__init__()
         self.decoder_blocks = nn.ModuleList([DecoderBlock(d_model, self_attention_block, cross_attention_block, feedforward_block, dropout) for _ in range(n)])
         self.norm = nn.LayerNorm(d_model)
 
@@ -211,7 +212,7 @@ class Decoder(nn.Module):
 
 class ProjectionLayer(nn.Module):
     def __init__(self, d_model: int, vocab_size: int):
-        super(ProjectionLayer).__init__()
+        super(ProjectionLayer, self).__init__()
         self.proj = nn.Linear(d_model, vocab_size)
 
     def forward(self, x):
@@ -221,7 +222,7 @@ class ProjectionLayer(nn.Module):
 
 class Transformer(nn.Module):
     def __init__(self, encoder: Encoder, decoder: Decoder, src_embed: WordEmbedding, tgt_embed: WordEmbedding, pos: PositionalEncoding, projection_layer: ProjectionLayer):
-        super(Transformer).__init__()
+        super(Transformer, self).__init__()
         self.encoder = encoder
         self.decoer = decoder
         self.src_embed = src_embed
@@ -234,22 +235,22 @@ class Transformer(nn.Module):
         src = self.pos(src)
         return self.encoder(src, src_mask)
 
-    def decode(self, tgt, encoder_output, src_mask, tgt_mask):
+    def decode(self, tgt, encoder_output, tgt_mask, src_mask):
         tgt = self.tgt_embed(tgt)
         tgt = self.pos(tgt)
-        return self.decoder(tgt, encoder_output, src_mask, tgt_mask)
+        return self.decoder(tgt, encoder_output, tgt_mask, src_mask)
 
     def project(self, x):
         return self.projection_layer(x)
 
 
-def build_transformer(src_vocab_size: int, tgt_vocab_size: int, n: int = 6, d_model: int = 512, h: int = 8, d_ff: int = 2048, dropout: float = 0.1):
+def build_transformer(src_vocab_size: int, tgt_vocab_size: int, seq_length: int, n: int = 6, d_model: int = 512, h: int = 8, d_ff: int = 2048, dropout: float = 0.1):
     # embedding for source and target
     src_embed = WordEmbedding(d_model, src_vocab_size)
     tgt_embed = WordEmbedding(d_model, tgt_vocab_size)
 
     # positional encoding 
-    pos = PositionalEncoding(d_model, dropout)
+    pos = PositionalEncoding(seq_length, d_model, dropout)
 
     # sub layers for encoder
     encoder_self_attention_block = MultiHeadAttention(d_model, h, dropout)
